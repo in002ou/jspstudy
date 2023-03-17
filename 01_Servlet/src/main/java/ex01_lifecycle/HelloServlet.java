@@ -19,7 +19,7 @@ import javax.servlet.http.HttpServletResponse;
 /*
   URL
   1. 구성
-  	프로토콜://호스트:포트번호/ContextPath/URLMapping
+  	프로토콜://호스트:포트번호(생략가능)/ContextPath/URLMapping
   2. HelloServlet의 URL
   	http://localhost:9090/01_Servlet/HelloServlet
   */
