@@ -49,16 +49,45 @@
 				/* 요청 */
 				type: 'get',
 				url: '/01_Servlet/JSONServlet',
-				data: $('#frm_person').serialize(),		// form 내부의 모든 입력 요소(name 속성이 파라미터로 인식된다.)를 보낸다.
+				data: $('#frm_person').serialize(),		// form 내부의 모든 입력 요소(name 속성이 파라미터로 인식된다. 즉 name 속성을 가져야 파라미터를 보낼 수 있다.)를 보낸다.
 				/* 응답 */
-				dataType: 'json',
-				success: (resData)=>{	// resData == '{"name": "마돈나", "age": 50}'
+				dataType: 'json',	// 스트링 타입을 제이슨으로 바꿔주는 JSON.parse(resData)를 자동으로 진행한다.	'{"name": "마돈나", "age": 50}' ->  {"name": "마돈나", "age": 50}
+				success: (resData)=>{	// resData == {"name": "마돈나", "age": 50}
 					$('#content2').append($('<div>').text(resData.name));
 					$('#content2').append($('<div>').text(resData.age));
 				},
 				error: (jqXHR)=>{
 					$('#content2').append($('<div>').text('status : ' + jqXHR.status));
 					$('#content2').append($('<div>').text('responseText : ' + jqXHR.responseText));
+				}
+			})
+		})
+	</script>
+	<div>
+		<form id="frm_book">
+			<input type="text" name="title" placeholder="제목">
+			<input type="text" name="author" placeholder="저자">
+			<input type="text" name="price" placeholder="가격">
+			<input type="button" id="btn3" value="XML요청">
+		</form>
+		<div id="content3"></div>
+	</div>
+	<script>
+		$('#btn3').on('click', function(ev) {
+			$('#content3').empty();
+			$.ajax({
+				// 요청
+				type: 'get',
+				url: '/01_Servlet/XMLServlet',
+				data: $('#frm_book').serialize(),
+				// 응답
+				dataType: 'xml',
+				success: (resData)=>{
+					var ul = $('<ul>');
+					ul.append($('<li>').text('제목 : ' + $(resData).find('title').text()));
+					ul.append($('<li>').text('저자 : ' + $(resData).find('author').text()));
+					ul.append($('<li>').text('가격 : ' + $(resData).find('price').text() + "원"));
+					$('#content3').append(ul);
 				}
 			})
 		})

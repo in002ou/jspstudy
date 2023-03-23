@@ -29,7 +29,7 @@ public class TextServlet extends HttpServlet {
 				}
 			}
 			// 응답 데이터 타입
-			response.setContentType("text/plain; charSet=UTF-8");
+			response.setContentType("text/plain; charSet=UTF-8");	// 응답메시지가 일반 텍스트 일때 text/plain
 			// 출력 스트림 생성
 			PrintWriter out = response.getWriter();
 			// 출력
@@ -43,7 +43,7 @@ public class TextServlet extends HttpServlet {
 			// 응답메시지 : 가격을 확인하세요.
 			
 			// 응답메시지 타입
-			response.setContentType("text/plain; charset=UTF-8");
+			response.setContentType("text/plain; charset=UTF-8");	
 			// 응답코드
 			response.setStatus(600);
 			// 응답메시지(responseText)
