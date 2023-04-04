@@ -17,6 +17,14 @@
 		$('#btn_write').on('click', function(ev){
 			location.href = '${contextPath}/writeBoard.do';
 		});
+		// 삭제 링크 클릭
+		$('.link_remove').on('click', function(ev){
+			if(confirm('삭제할까요?') == false){
+				ev.preventDefault();	// <a> 태그의 기본 동작인 href 속성 이동을 막는다.
+				return;
+			}
+			
+		});
 	})
 </script>
 </head>
@@ -37,12 +45,17 @@
 					</tr>
 				</thead>
 				<tbody>
-					<c:forEach items="${boards}" var="board">
+					<c:forEach items="${boards}" var="board" varStatus="vs">
 						<tr>
-							<td>${board.board_no}</td>
-							<td>${board.title}</td>
-							<td>${board.created_date}</td>
-							<td><a href=""><i class="fa-solid fa-x"></i></a></td>
+							<td><fmt:formatNumber value="${boardsCount - vs.index}" pattern="#,##0" /></td>
+							<td><a href="${contextPath}/getBoardByNo.do?board_no=${board.board_no}">${board.title}</a></td>
+							<td><fmt:formatDate value="${board.created_date}" pattern="yy.MM.dd"/></td>
+							<td>
+								<form method="post" action="${contextPath}/removeBoard.do">
+									<input type="hidden" name="board_no" value="${board.board_no}">
+									<button class="link_remove"><i class="fa-solid fa-x"></i></button>
+								</form>
+							</td>
 						</tr>
 					</c:forEach>
 				</tbody>

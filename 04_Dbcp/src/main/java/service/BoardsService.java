@@ -22,6 +22,7 @@ public class BoardsService implements IBoardService {
 		
 		// 3. DB로부터 가져온 게시글 목록 boards를 request에 저장 (forward 하기 위해서)
 		request.setAttribute("boards", boards);
+		request.setAttribute("boardsCount", boards.size());
 		
 		// 4. 어디로 and 어떻게 이동
 		ActionForward af = new ActionForward("board/list.jsp", false);	// board 폴더 아래 list.jsp로 forward(request 전달) 하시오.
