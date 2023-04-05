@@ -1,0 +1,214 @@
+package repository;
+
+import java.sql.Connection;
+import java.sql.Date;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.naming.Context;
+import javax.naming.InitialContext;
+import javax.naming.NamingException;
+import javax.sql.DataSource;
+
+import domain.BoardDTO;
+
+public class BoardDAO {
+	
+	// 모든 메소드가 사용할 공통 필드
+	private Connection con;
+	private PreparedStatement ps;
+	private ResultSet rs;
+	private String sql;
+	
+	// Connection 관리를 위한 DataSource 필드
+	private DataSource dataSource;
+	
+	// Singleton Pattern으로 DAO 생성하기
+	private static BoardDAO dao = new BoardDAO();	// 클래스 메소드를 만드려면 필드도 static이 붙어야함?
+	// 서비스들이 dao를 호출할 수 없게 프라이빗으로 생성자를 만든다.
+	private BoardDAO() {
+		// context.xml에서 <Resource name="jdbc/GDJ61" /> 인 Resource를 읽어서 DataSource 객체 생성(JNMI 방식)
+		try {
+			Context context = new InitialContext();
+			Context envContext = (Context)context.lookup("java:comp/env");
+			dataSource = (DataSource)envContext.lookup("jdbc/GDJ61");
+			/*
+			 	Context context = new InitialContext()
+			 	dataSource = (DataSource)envContext.lookup("java:comp/env/jdbc/GDJ61");
+			 	위와 같음
+			 */
+		} catch(NamingException e) {
+			e.printStackTrace();
+		}
+	}
+	// 호출할 수 없으니 가져다 쓸 수 있게 해주는 메소드(객체를 생성할 수 없으니 클래스메소드로 이용하기 위해 static을 붙여준다.)
+	public static BoardDAO getInstance() {
+		return dao;
+	}
+	
+	// 자원(Connection, PreparedStatment, ResultSet) 반납하기
+	private void close() {
+		try {
+			if(rs != null) rs.close();
+			if(ps != null) ps.close();
+			if(con != null) con.close();
+		} catch(Exception e) {
+			e.printStackTrace();
+		}
+	}
+	
+	// 게시글 목록 반환하기
+	public List<BoardDTO> selectBoards() {
+		
+		// 1. ArrayList 생성
+		List<BoardDTO> boards = new ArrayList<BoardDTO>();
+		try {
+			// 2. DataSource로부터 Connection 얻어오기
+			con = dataSource.getConnection();
+			// 3. 실행할 쿼리문
+			sql = "SELECT BOARD_NO, TITLE, CONTENT, MODIFIED_DATE, CREATED_DATE FROM BOARD ORDER BY BOARD_NO DESC";
+			// 4. 쿼리문을 실행할 PreparedStatment 객체 생성
+			ps = con.prepareStatement(sql);
+			// 5. PreparedStatment 객체를 이용해 쿼리문 실행(SELECT문 실행은 executeQuery 메소드로 한다.)
+			rs = ps.executeQuery();
+			// 6. ResultSet 객체(결과 집합)를 이용해서 ArrayList를 만듦.
+			while(rs.next()) {
+				// step1. Board 테이블의 결과 행(ROW)을 읽는다.
+				int board_no = rs.getInt("BOARD_NO");
+				String title = rs.getString("TITLE");
+				String content = rs.getString("CONTENT");
+				Date modified_date = rs.getDate("MODIFIED_DATE");
+				Date created_date = rs.getDate("CREATED_DATE");
+				// step2. 읽은 정보를 이용해서 BoardDTO 객체를 만든다.
+				BoardDTO board = new BoardDTO(board_no, title, content, modified_date, created_date);
+				// step3. BoardDTO 객체를 ArrayList에 추가한다
+				boards.add(board);
+			}
+			
+		} catch(Exception e) {
+			e.printStackTrace();
+		} finally {
+			// 예외 발생 여부와 상관 없이 항상 자원의 반납을 해야 한다.
+			close();
+		}
+		// 7. ArrayList 반환
+		return boards;
+	}
+	// 게시글 반환하기
+	public BoardDTO selectBoardByNO(int board_no) {
+		
+		// 1. 반환할 BoardDTO board 선언
+		BoardDTO board = null;
+		try {
+			// 2. DataSource로부터 Connection 얻어오기
+			con = dataSource.getConnection();
+			// 3. 실행할 쿼리문
+			sql = "SELECT BOARD_NO, TITLE, CONTENT, MODIFIED_DATE, CREATED_DATE FROM BOARD WHERE BOARD_NO = ?";
+			// 4. 쿼리문을 실행할 PreparedStatment 객체 생성
+			ps = con.prepareStatement(sql);
+			
+			// 5. 쿼리문에 변수값 전달
+			ps.setInt(1, board_no);
+			
+			// 6. PreparedStatment 객체를 이용해 쿼리문 실행(SELECT문 실행은 executeQuery 메소드로 한다.)
+			rs = ps.executeQuery();
+			// 7. ResultSet 객체(결과 집합)를 이용해서 BoardDTO를 만듦.
+			if(rs.next()) {
+				// step1. Board 테이블의 결과 행(ROW)을 읽는다.
+				String title = rs.getString("TITLE");
+				String content = rs.getString("CONTENT");
+				Date modified_date = rs.getDate("MODIFIED_DATE");
+				Date created_date = rs.getDate("CREATED_DATE");
+				// step2. 읽은 정보를 이용해서 BoardDTO 객체를 만든다.
+				board = new BoardDTO(board_no, title, content, modified_date, created_date);
+			}
+		} catch(Exception e) {
+			e.printStackTrace();
+		} finally {
+			// 예외 발생 여부와 상관 없이 항상 자원의 반납을 해야 한다.
+			close();
+		}
+		return board;
+	}
+	// 게시글 삽입
+	public int insertBoard(BoardDTO board) {
+		
+		// 1. 삽입결과 변수 선언
+		int insertResult = 0;
+		
+		try {
+			// 2. DataSource로부터 Connection 얻어오기
+			con = dataSource.getConnection();
+			// 3. 실행할 쿼리문
+			sql = "INSERT INTO BOARD VALUES(BOARD_SEQ.NEXTVAL, ?, ?, NULL, SYSDATE)";
+			// 4. 쿼리문을 실행할 PreparedStatment 객체 생성
+			ps = con.prepareStatement(sql);
+			// 5. 쿼리문에 변수 값 전달하기
+			ps.setString(1, board.getTitle());		// 1번째 물음표(?)에 title 전달하기
+			ps.setString(2, board.getContent());	// 2번째 물음표에 content 전달하기
+			// 6. PreparedStatment 객체를 이용해 쿼리문 실행(INSERT문 실행은 executeUpdate 메소드로 한다.)
+			insertResult = ps.executeUpdate();
+		} catch(Exception e) {
+			e.printStackTrace();
+		} finally {
+			// 예외 발생 여부와 상관 없이 항상 자원의 반납을 해야 한다.
+			close();
+		}
+		return insertResult;
+	}
+	// 게시글 수정하기
+	public int updateBoard(BoardDTO board) {
+		
+		// 1. 수정 결과 변수 선언
+		int updateResult = 0;
+		
+		try {
+			
+			// 2. DataSource로부터 Connection 얻어오기
+			con = dataSource.getConnection();
+			// 3. 실행할 쿼리문
+			sql = "UPDATE BOARD SET TITLE = ?, CONTENT = ?, MODIFIED_DATE = SYSDATE WHERE BOARD_NO = ?";
+			// 4. 쿼리문을 실행할 PreparedStatment 객체 생성
+			ps = con.prepareStatement(sql);
+			// 5. 쿼리문에 변수 값 전달하기
+			ps.setString(1, board.getTitle());		// 1번째 물음표(?)에 title 전달하기
+			ps.setString(2, board.getContent());	// 2번째 물음표에 content 전달하기
+			ps.setInt(3, board.getBoard_no());		// 3번째 물음표에 board_no 전달하기
+			// 6. PreparedStatment 객체를 이용해 쿼리문 실행(INSERT문 실행은 executeUpdate 메소드로 한다.)
+			updateResult = ps.executeUpdate();
+			
+		} catch(Exception e) {
+			e.printStackTrace();
+		} finally {
+			close();
+		}
+		// 7. 수정 결과 반환
+		return updateResult;
+	}
+	// 게시글 삭제하기
+	public int deleteBoard(int board_no) {
+		
+		// 1. 삭제 결과 변수 선언
+		int deleteResult = 0;
+		 try {
+			// 2. DataSource로부터 Connection 얻어오기
+			con = dataSource.getConnection();
+			// 3. 실행할 쿼리문
+			sql = "DELETE FROM BOARD WHERE BOARD_NO = ?";
+			// 4. 쿼리문을 실행할 PreparedStatment 객체 생성
+			ps = con.prepareStatement(sql);
+			// 5. 쿼리문에 변수 값 전달하기
+			ps.setInt(1, board_no);		// 1번째 물음표(?)에 board_no 전달하기
+			// 6. PreparedStatment 객체를 이용해 쿼리문 실행(DELETE문 실행은 executeUpdate 메소드로 한다.)
+			deleteResult = ps.executeUpdate();
+		 } catch(Exception e) {
+			 e.printStackTrace();
+		 } finally {
+			 close();
+		 }
+		
+		return deleteResult;
+	}
+}
